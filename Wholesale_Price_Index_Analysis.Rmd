@@ -1,0 +1,148 @@
+---
+title: "wholesale_prices_EDA"
+output: html_document
+date: "2024-07-24"
+---
+```{r}
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+data <-read.csv("~/wholesale_prices_data.csv")
+head(data)
+tail(data)
+```
+```{r}
+nrow(data)
+ncol(data)
+colnames(data)
+```
+```{r}
+str(data)
+summary(data)
+```
+
+
+
+```{r}
+# Check for missing values
+colSums(is.na(data))
+```
+```{r}
+missing_cols <- colSums(is.na(data)) > 0
+cols_with_missing_values <- names(data)[missing_cols]
+print(cols_with_missing_values)
+```
+since all of the entries in the columns for the years 2011 and 2012 are missing , the best course of action would be to drop the null values within these columns entirely.
+```{r}
+data_clean <- data %>% select(-one_of(cols_with_missing_values))
+str(data_clean)
+```
+```{r}
+colnames(data_clean)
+```
+
+```{r}
+ggplot(data_long, aes(x = Year, y = Index)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Distribution of Wholesale Price Index Over Years", x = "Year", y = "Index") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data_long, aes(x = Index)) +
+  geom_histogram(bins = 30, fill = "blue", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Wholesale Price Index", x = "Index", y = "Frequency")
+```
+The above chart indicates the distribution of wholesale price index across all years in the dataset (2013-2023)
+```{r}
+data_long <- data %>% pivot_longer(cols = starts_with("INDEX"), names_to = "Year", values_to = "Index")
+avg_wpi <- data_long %>%
+  group_by(COMM_NAME) %>%
+  summarise(Avg_WPI = mean(Index, na.rm = TRUE)) %>%
+  arrange(desc(Avg_WPI)) %>%
+  top_n(10, Avg_WPI)
+#The average WPI for each commodity is calculated before plotting 
+
+# Plot top 10 commodities with highest average WPI
+ggplot(avg_wpi, aes(x = reorder(COMM_NAME, Avg_WPI), y = Avg_WPI)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Top 10 Commodities with Highest Average WPI", x = "Commodity", y = "Average WPI")
+
+```
+The above plot reveals interesting commodities which have the highest average WPI.
+```{r}
+# Calculate average WPI for each commodity
+low_avg_wpi <- data_long %>%
+  group_by(COMM_NAME) %>%
+  summarise(Avg_WPI = mean(Index, na.rm = TRUE)) %>%
+  arrange(Avg_WPI) %>%
+  top_n(-10, Avg_WPI)
+
+# Plot top 10 commodities with lowest average WPI
+ggplot(low_avg_wpi, aes(x = reorder(COMM_NAME, Avg_WPI), y = Avg_WPI)) +
+  geom_bar(stat = "identity", fill = "tomato") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Top 10 Commodities with Lowest Average WPI", x = "Commodity", y = "Average WPI")
+```
+The above plot indicates that certain machinery and raw materials tend to have a lower average WPI.
+However, this could also be due to negative WPI in certain years. To address this, we can now plot the variance of commodity WPI and find out the commodities with least variance of WPI.
+```{r}
+# Calculate variance of WPI for each commodity
+var_wpi <- data_long %>%
+  group_by(COMM_NAME) %>%
+  summarise(Var_WPI = var(Index, na.rm = TRUE)) %>%
+  arrange(Var_WPI) %>%
+  top_n(-10, Var_WPI)
+
+# Plot top 10 commodities with least variant WPI
+ggplot(var_wpi, aes(x = reorder(COMM_NAME, Var_WPI), y = Var_WPI)) +
+  geom_bar(stat = "identity", fill = "green") +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Top 10 Commodities with Least Variant WPI", x = "Commodity", y = "Variance of WPI")
+
+```
+The above plot is indicative of the fact that certain imperative commodities have a relatively stable WPI.
+
+```{r}
+# Calculate average WPI for each year
+avg_wpi_year <- data_long %>%
+  group_by(Year) %>%
+  summarise(Avg_WPI = mean(Index, na.rm = TRUE))
+
+# Plot average WPI over time
+ggplot(avg_wpi_year, aes(x = Year, y = Avg_WPI)) +
+  geom_line(color = "blue") +
+  geom_point(color = "red") +
+  theme_minimal() +
+  labs(title = "Trend of Average WPI Over Time", x = "Year", y = "Average WPI") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+The above plot showcases an interesting trend, wherein the WPI of all commodities on average show a relatively steady increase through the years, Indicating the ever present influence of inflation on commodity prices . 
+We can further study this by plotting a distribution of price index for the first and last year in the dataset : 
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(dplyr)
+library(readr)
+# Plot the distribution of a few commodity indices over the years
+cleaned_data <- data %>%
+  filter(!grepl("manufacture of|MANUFACTURE OF", COMM_NAME, ignore.case = TRUE))
+data<-data_clean
+ggplot(data, aes(x = INDEX2013)) +
+  geom_histogram(binwidth = 10, fill = "blue", color = "black") +
+  ggtitle("Distribution of Commodity Index in 2013")
+
+ggplot(data, aes(x = INDEX2022)) +
+  geom_histogram(binwidth = 10, fill = "green", color = "black") +
+  ggtitle("Distribution of Commodity Index in 2022")
+```
+As discussed, the year 2023 shows a higher density of commodities lying in the 100-150 price index range , whereas the index distribution for the year 2022 shows a larger density within the 150-200 range , with a higher variance. This is clearly indicative of the inflation that has occurred within the commodity price index over the years.
