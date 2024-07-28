@@ -10,8 +10,12 @@ followed by the index for each year.
 
 The dataset contains the following columns:
 ● COMM_NAME: Name of the commodity.
+
 ● COMM_CODE: Unique code for the commodity.
+
 ● COMM_WT: Weight of the commodity in the index calculation.
+
 ● INDEX20122013 to INDEX20222023: WPI values for the respective years.
+
 Link:
 https://www.data.gov.in/resource/wholesale-price-index-base-year-2011-12-till-last-financial-year
